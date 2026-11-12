@@ -10,6 +10,7 @@ Pipeline asíncrono con LangChain que recibe un texto técnico (un log de error,
 | `chain.py` | Modelo (`ChatOpenAI` o `ChatAnthropic`), prompt, cadena LCEL y `process_text()` async con logs. |
 | `circuit_breaker.py` | Circuit breaker (CLOSED / OPEN / HALF_OPEN), el mismo de la entrega 1. |
 | `mock_model.py` | Modelo falso para probar sin API keys. |
+| `lcel_async.py` | Ejercicio opcional: cadena `prompt \| modelo \| StrOutputParser` ejecutada con `await chain.ainvoke(...)`. |
 | `main.py` | Mini-script de prueba: ejecuta el pipeline sobre dos textos de ejemplo. |
 | `test_chain.py` | Tests automáticos (no requieren API keys). |
 
@@ -82,6 +83,15 @@ LLM_MOCK=fail python main.py    # se rompen los dos modelos: falla tras 3 intent
 - La cadena es `prompt | (failover entre modelos)`. Dentro de cada modelo está `with_structured_output(ExtraccionTecnica)` envuelto con `with_retry`, para poder registrar los intentos en el log.
 - Si falta la API key del proveedor principal o `LLM_PROVIDER` es inválido, `main.py` muestra un error de configuración y termina.
 - Cada llamada a la API tiene un timeout de 60 segundos.
+
+## Ejercicio opcional: LCEL asíncrono
+
+`lcel_async.py` arma la cadena `ChatPromptTemplate | modelo | StrOutputParser()` (prompt con roles System/Human y la variable `{pregunta}`) y la ejecuta con `await chain.ainvoke({"pregunta": ...})`. Imprime la respuesta como texto plano (`str`).
+
+```bash
+python lcel_async.py              # modelo real, según LLM_PROVIDER
+LLM_MOCK=1 python lcel_async.py   # sin API keys
+```
 
 ## Tests
 
