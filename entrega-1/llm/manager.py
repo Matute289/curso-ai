@@ -331,7 +331,10 @@ class AsyncLLMManager:
     @staticmethod
     def _validate_prompt(prompt):
         """Valida que el prompt no esté vacío."""
-        if not prompt or not prompt.strip():
+        if not isinstance(prompt, str):
+            raise ValueError("El prompt debe ser un texto.")
+
+        if not prompt.strip():
             raise ValueError("El prompt no puede estar vacío.")
 
     async def _wait_before_retry(self, breaker, attempt) -> bool:
@@ -345,9 +348,13 @@ class AsyncLLMManager:
         if attempt >= self.config.max_retries:
             return False
 
+        # Si el circuito ya se abrió, no tiene sentido esperar.
+        if await breaker.get_state() == "OPEN":
+            return False
+
         await asyncio.sleep(self.config.retry_delay * (2 ** attempt))
 
-        # Si el circuito se abrió, dejamos de insistir.
+        # Si se abrió mientras esperábamos, dejamos de insistir.
         return await breaker.get_state() != "OPEN"
 
     async def generate_text(self, prompt: str) -> str:
@@ -503,5 +510,8 @@ class AsyncLLMManager:
         """
         Cierra todos los clientes HTTP inicializados.
         """
-        for client in self.clients.values():
-            await client.close()
+        # Si un cliente falla al cerrarse, igual se cierran los demás.
+        await asyncio.gather(
+            *(client.close() for client in self.clients.values()),
+            return_exceptions=True,
+        )

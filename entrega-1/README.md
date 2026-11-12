@@ -62,6 +62,12 @@ LLM_MOCK=fail python main.py   # el proveedor principal falla por rate limit y s
 
 Los errores de red, timeout, rate limit y de la API se convierten en excepciones propias (`LLMConnectionError`, `LLMRateLimitError`, `LLMProviderError`, todas subclases de `LLMError`) en lugar de romper el programa. Los errores recuperables se reintentan con espera exponencial y luego se pasa al proveedor alternativo. Si el streaming ya entregó texto y se corta, se lanza `LLMStreamInterruptedError` para no duplicar contenido.
 
+## Detalles a tener en cuenta
+
+- **Qué dispara el failover:** errores de conexión, timeout, rate limit (429) y errores 5xx. Un error como API key inválida (401) o modelo inexistente (404) se informa directamente como error controlado, sin pasar al otro proveedor.
+- **Temperatura y top_p:** se envían solo a OpenAI. Con Anthropic se validan pero se ignoran.
+- **Errores de configuración:** si falta la API key del proveedor principal o `LLM_PROVIDER` es inválido, `main.py` muestra un mensaje de error y termina.
+
 ## Tests
 
 ```bash

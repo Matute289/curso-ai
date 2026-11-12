@@ -2,6 +2,7 @@ import asyncio
 import os
 
 from dotenv import load_dotenv
+from pydantic import ValidationError
 
 from llm.exceptions import LLMError
 from llm.manager import AsyncLLMManager
@@ -38,7 +39,7 @@ def build_manager(config: LLMConfig) -> AsyncLLMManager:
     """
     mock = os.getenv("LLM_MOCK", "").lower()
 
-    if not mock:
+    if mock in ("", "0", "false", "no"):
         return AsyncLLMManager(config)
 
     primary_fails = mock == "fail"
@@ -66,8 +67,13 @@ def build_manager(config: LLMConfig) -> AsyncLLMManager:
 
 async def main():
     """Prueba el modo normal y el modo streaming del administrador."""
-    config = build_config()
-    manager = build_manager(config)
+    try:
+        config = build_config()
+        manager = build_manager(config)
+    except (ValueError, ValidationError) as error:
+        # Configuración inválida o falta una API key: mensaje claro, sin traceback.
+        print(f"Error de configuración: {error}")
+        return
 
     print(f"Proveedor: {config.provider.value} | Modelo: {config.model}")
 
